@@ -1,6 +1,6 @@
 # marginalia.nvim Constitution
 <!-- Sync Impact Report:
-New Version: 0.2.0 (TDD Principle Added)
+New Version: 0.1.0 (TDD Principle Added)
 Modified Principles: Added VI. Test Driven
 Added Sections: None
 Templates Checked: plan-template.md (Confirmed TDD alignment)
@@ -45,4 +45,4 @@ Follow-up: Ensure test infrastructure (busted/plenary) is set up first
 
 本憲章はプロジェクトの最高規則であり、すべての設計判断はこれに準拠する必要がある。原則の変更は、ドキュメント化と承認プロセスを経た上で、セマンティックバージョニングに従ってバージョンアップを行う。
 
-**Version**: 0.2.0 | **Ratified**: 2026-02-19 | **Last Amended**: 2026-02-19
+**Version**: 0.1.0 | **Ratified**: 2026-02-19 | **Last Amended**: 2026-02-19
