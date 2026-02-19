@@ -70,6 +70,37 @@ function M.list()
   return annotations
 end
 
+---Get a single annotation by ID
+---@param id string
+---@return table|nil
+function M.get(id)
+  for _, item in ipairs(annotations) do
+    if item.id == id then
+      return item
+    end
+  end
+  return nil
+end
+
+---Reorder and filter annotations by ordered list of IDs
+---Annotations not in ordered_ids are removed.
+---@param ordered_ids string[]
+function M.reorder(ordered_ids)
+  local id_map = {}
+  for _, item in ipairs(annotations) do
+    id_map[item.id] = item
+  end
+
+  local new_annotations = {}
+  for _, id in ipairs(ordered_ids) do
+    if id_map[id] then
+      table.insert(new_annotations, id_map[id])
+    end
+  end
+
+  annotations = new_annotations
+end
+
 ---Save annotations to disk
 function M.save()
   local path = M.get_file_path()

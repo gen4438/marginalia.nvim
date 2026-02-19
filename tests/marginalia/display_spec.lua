@@ -60,6 +60,8 @@ describe("display", function()
         comment = "first line\nsecond line",
       },
     })
+    stub(store, "reorder")
+    stub(store, "save")
 
     local ok = pcall(display.open_manager)
     assert.is_true(ok)
@@ -72,6 +74,8 @@ describe("display", function()
 
     vim.api.nvim_buf_delete(manager_buf, { force = true })
     store.list:revert()
+    store.reorder:revert()
+    store.save:revert()
   end)
 
   it("renders single line number when line == end_line", function()
@@ -85,6 +89,8 @@ describe("display", function()
         comment = "single line",
       },
     })
+    stub(store, "reorder")
+    stub(store, "save")
 
     local ok = pcall(display.open_manager)
     assert.is_true(ok)
@@ -97,5 +103,7 @@ describe("display", function()
 
     vim.api.nvim_buf_delete(manager_buf, { force = true })
     store.list:revert()
+    store.reorder:revert()
+    store.save:revert()
   end)
 end)
