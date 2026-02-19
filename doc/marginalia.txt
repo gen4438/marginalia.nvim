@@ -59,14 +59,36 @@ With `include_code = true`: >
 ==============================================================================
 3. MANAGER BUFFER                                        *marginalia-manager*
 
-The manager buffer displays annotations with line ranges (e.g. `file:10-15`).
-It behaves like a normal Vim buffer — standard editing operations work:
+The manager buffer displays annotations using Vim folds. By default all
+annotations are folded into a one-line summary (`file:line_range | comment`).
+Expand folds to see the full Markdown output with code blocks and comments.
 
-    dd + p   - Reorder annotations (cut and paste lines)
-    Vjjd     - Visual select multiple lines and delete
-    u        - Undo changes
+FOLD CONTROLS ~
+                                                    *marginalia-manager-folds*
+    za    - Toggle fold for annotation under cursor
+    zR    - Expand all annotations (full Markdown view)
+    zM    - Collapse all annotations (summary view)
 
-Special keymaps:
+NAVIGATION ~
+                                               *marginalia-manager-navigation*
+    ]a    - Jump to next annotation block (supports count, e.g. 3]a)
+    [a    - Jump to previous annotation block
+
+TEXT OBJECTS ~
+                                             *marginalia-manager-textobjects*
+    ia    - Inner annotation: code + comment lines (excludes header)
+    aa    - A annotation: entire block including header and separator
+
+    These work with all operators: `dia`, `daa`, `yia`, `yaa`, `cia`, etc.
+
+EDITING ~
+                                                  *marginalia-manager-editing*
+    dd    - On a header line (@file#...): deletes the entire block
+            On a comment/code line: deletes only that line (normal edit)
+    daa   - Delete entire annotation block from anywhere in the block
+    u     - Undo changes
+
+SPECIAL KEYMAPS ~
 
     <CR>  - Open the file and visually select the annotated range
     q     - Save changes and close

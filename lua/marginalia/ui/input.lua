@@ -23,7 +23,7 @@ function M.open(callback)
     col = col,
     style = "minimal",
     border = "rounded",
-    title = " Add Annotation (Normal:<CR> to Save) ",
+    title = " Add Annotation (<CR>: Save / q: Cancel) ",
     title_pos = "center",
   }
 

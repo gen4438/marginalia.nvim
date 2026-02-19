@@ -1,5 +1,14 @@
 local M = {}
 
+local ext_lang_map = { rs = "rust", ts = "typescript", js = "javascript", py = "python" }
+
+---Map file extension to language name for code fences
+---@param ext string
+---@return string
+function M.ext_to_lang(ext)
+  return ext_lang_map[ext] or ext
+end
+
 ---Generate markdown for an annotation item
 ---@param item table {file, line, end_line, code_chunk, comment, ...}
 ---@param opts table|nil {include_code=boolean}
@@ -8,21 +17,7 @@ function M.markdown(item, opts)
   opts = opts or {}
   local file = item.file or "unknown"
   local ext = file:match("%.([%w_]+)$") or ""
-  local lang = ext
-
-  -- Simple mapping for common extensions
-  if lang == "rs" then
-    lang = "rust"
-  end
-  if lang == "ts" then
-    lang = "typescript"
-  end
-  if lang == "js" then
-    lang = "javascript"
-  end
-  if lang == "py" then
-    lang = "python"
-  end
+  local lang = M.ext_to_lang(ext)
 
   local parts = {}
 

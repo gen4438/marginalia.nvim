@@ -77,12 +77,38 @@ Explanation of main function
 ### 3. Manage Annotations
 
 - `:MarginaliaManager` - Open an editable management buffer.
-  - The buffer behaves like a normal Vim buffer: use `dd`, `p`, Visual select, etc.
-  - `dd` + `p` to reorder annotations.
-  - Visual select + `d` to delete multiple annotations at once.
-  - `<CR>` - Open the file and visually select the annotated range.
-  - `q` - Save changes and close.
-  - `:w` - Save changes without closing.
+  - By default, annotations are displayed in a **folded summary view** (one line per annotation).
+  - Use standard Vim fold commands to toggle between summary and expanded (full Markdown) views.
+
+**Fold Controls:**
+
+| Key | Action |
+|-----|--------|
+| `za` | Toggle fold for the annotation under cursor |
+| `zR` | Expand all annotations (show code + full comments) |
+| `zM` | Collapse all annotations (summary view) |
+
+**Navigation & Selection:**
+
+| Key | Action |
+|-----|--------|
+| `]a` | Jump to next annotation (supports count: `3]a`) |
+| `[a` | Jump to previous annotation |
+| `via` | Select inner annotation (code + comment, excluding header) |
+| `vaa` | Select entire annotation block (including header) |
+
+**Editing:**
+
+| Key | Action |
+|-----|--------|
+| `dd` on header line (`@file#...`) | Delete the entire annotation block |
+| `dd` on comment/code line | Delete that line only (normal editing) |
+| `daa` | Delete entire annotation block |
+| `<CR>` | Open the file and visually select the annotated range |
+| `q` | Save changes and close |
+| `:w` | Save changes without closing |
+
+Text objects `ia` / `aa` work with all operators: `dia`, `yaa`, `cia`, etc.
 
 ### 4. Search Annotations
 
