@@ -1,0 +1,58 @@
+*marginalia.txt*  Code Annotation Plugin
+
+Author:  Gen
+License: MIT
+
+==============================================================================
+CONTENTS                                                  *marginalia-contents*
+
+    1. Intro ................................. |marginalia-intro|
+    2. Operations ............................ |marginalia-operations|
+    3. Configuration ......................... |marginalia-configuration|
+
+==============================================================================
+1. INTRO                                                     *marginalia-intro*
+
+Marginalia allows you to select code and add annotations. These annotations
+are compiled into a Markdown context for AI prompts.
+
+==============================================================================
+2. OPERATIONS                                           *marginalia-operations*
+
+COMMANDS                                                 *marginalia-commands*
+
+:MarginaliaAnnotate                                       *MarginaliaAnnotate*
+    Select code in visual mode and execute this to add an annotation.
+    Prompts for a comment in a floating window.
+    Press <CR> in Normal mode to submit.
+
+:MarginaliaList                                               *MarginaliaList*
+    Open Quickfix list with all annotations for the current project.
+
+:MarginaliaManage                                           *MarginaliaManage*
+    Open a buffer to manage annotations.
+    Mappings in buffer:
+        dd - Delete annotation under cursor
+        r  - Refresh list
+        q  - Close buffer
+
+KEYMAPPINGS                                              *marginalia-keymappings*
+
+If `default_mappings` is enabled in setup:
+    <leader>ma  - Annotate selection (Visual Mode)
+
+==============================================================================
+3. CONFIGURATION                                     *marginalia-configuration*
+
+Default configuration:
+>lua
+    require("marginalia").setup({
+        -- Directory to store json files
+        data_dir = vim.fn.stdpath("data") .. "/marginalia",
+
+        -- Enable default mappings
+        default_mappings = false,
+    })
+<
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:

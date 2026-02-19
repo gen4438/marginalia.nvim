@@ -1,0 +1,21 @@
+# Neovim / Lua
+.luarc.json
+luac.out
+*.rockspec
+.luarocks/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Testing
+tests/plenary/
+coverage/
+
+# Misc
+*.log
+*.tmp
