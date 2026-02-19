@@ -48,4 +48,28 @@ describe("display", function()
     vim.fn.setqflist:revert()
     vim.cmd:revert()
   end)
+
+  it("renders manager lines safely when comments contain newlines", function()
+    local store_list_stub = stub(store, "list")
+    store_list_stub.returns({
+      {
+        id = "ann-1",
+        file = "lua/test.lua",
+        line = 7,
+        comment = "first line\nsecond line",
+      },
+    })
+
+    local ok = pcall(display.open_manager)
+    assert.is_true(ok)
+
+    local manager_buf = vim.fn.bufnr("MarginaliaManager")
+    assert.is_true(manager_buf > 0)
+
+    local lines = vim.api.nvim_buf_get_lines(manager_buf, 0, -1, false)
+    assert.are.same("lua/test.lua:7 | first line\\nsecond line", lines[3])
+
+    vim.api.nvim_buf_delete(manager_buf, { force = true })
+    store.list:revert()
+  end)
 end)

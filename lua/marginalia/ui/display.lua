@@ -35,6 +35,13 @@ end
 local manage_buf = nil
 local line_to_id = {}
 
+local function normalize_for_manager_line(value)
+  local text = tostring(value or "")
+  text = text:gsub("\r\n", "\\n")
+  text = text:gsub("[\r\n]", "\\n")
+  return text
+end
+
 ---Render management buffer content
 function M.render_manager()
   if not manage_buf or not vim.api.nvim_buf_is_valid(manage_buf) then
@@ -50,7 +57,12 @@ function M.render_manager()
 
   for _, item in ipairs(items) do
     local line_idx = #lines + 1
-    local text = string.format("%s:%d | %s", item.file, item.line, item.comment)
+    local text = string.format(
+      "%s:%d | %s",
+      normalize_for_manager_line(item.file),
+      tonumber(item.line) or 0,
+      normalize_for_manager_line(item.comment)
+    )
     table.insert(lines, text)
     line_to_id[line_idx] = item.id
   end
