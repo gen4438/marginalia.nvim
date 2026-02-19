@@ -50,7 +50,16 @@ local manage_buf = nil
 local ns_id = vim.api.nvim_create_namespace("marginalia_manager")
 local extmark_to_ann_id = {}
 
-local HEADER_PATTERN = "^@.*#%d+"
+---Check if a line is an annotation header by extmark presence
+---@param lnum number 1-based line number
+---@return boolean
+local function is_header_line(lnum)
+  if not manage_buf or not vim.api.nvim_buf_is_valid(manage_buf) then
+    return false
+  end
+  local marks = vim.api.nvim_buf_get_extmarks(manage_buf, ns_id, { lnum - 1, 0 }, { lnum - 1, 0 }, {})
+  return #marks > 0
+end
 
 ---Build line_range string from annotation item
 ---@param item table
@@ -127,10 +136,10 @@ local function get_block_range(lnum)
   local total = vim.api.nvim_buf_line_count(manage_buf)
   local lines = vim.api.nvim_buf_get_lines(manage_buf, 0, -1, false)
 
-  -- Find the header line at or above lnum
+  -- Find the header line at or above lnum (using extmarks)
   local start = nil
   for i = lnum, 1, -1 do
-    if lines[i] and lines[i]:match(HEADER_PATTERN) then
+    if is_header_line(i) then
       start = i
       break
     end
@@ -143,7 +152,7 @@ local function get_block_range(lnum)
   local content_end = total
   local block_end = total
   for i = start + 1, total do
-    if lines[i] and lines[i]:match(HEADER_PATTERN) then
+    if is_header_line(i) then
       content_end = i - 1
       block_end = i - 1
       -- Check if the line before the next header is a blank separator
@@ -162,18 +171,16 @@ local function get_block_range(lnum)
   return start, content_end, block_end
 end
 
----Find all header line numbers (1-based)
+---Find all header line numbers (1-based) using extmarks
 ---@return number[]
 local function find_header_lines()
   if not manage_buf or not vim.api.nvim_buf_is_valid(manage_buf) then
     return {}
   end
-  local lines = vim.api.nvim_buf_get_lines(manage_buf, 0, -1, false)
+  local extmarks = vim.api.nvim_buf_get_extmarks(manage_buf, ns_id, 0, -1, {})
   local headers = {}
-  for i, line in ipairs(lines) do
-    if line:match(HEADER_PATTERN) then
-      table.insert(headers, i)
-    end
+  for _, ext in ipairs(extmarks) do
+    table.insert(headers, ext[2] + 1) -- convert 0-indexed to 1-indexed
   end
   return headers
 end
@@ -253,20 +260,19 @@ function _G.marginalia_foldexpr()
     return "0"
   end
 
-  local line = vim.fn.getline(lnum)
-
-  -- Annotation block starts with @
-  if line:match(HEADER_PATTERN) then
+  -- Annotation block starts with extmark-tracked header
+  if is_header_line(lnum) then
     return ">1"
   end
+
+  local line = vim.fn.getline(lnum)
 
   -- Blank line is a block separator only if the next non-blank line is a header
   if line == "" then
     if lnum == vim.fn.line("$") then
       return "0"
     end
-    local next_line = vim.fn.getline(lnum + 1)
-    if next_line:match(HEADER_PATTERN) then
+    if is_header_line(lnum + 1) then
       return "0"
     end
   end
@@ -380,9 +386,8 @@ function M.open_manager()
   vim.keymap.set("n", "dd", function()
     local cursor = vim.api.nvim_win_get_cursor(0)
     local lnum = cursor[1]
-    local line = vim.api.nvim_buf_get_lines(manage_buf, lnum - 1, lnum, false)[1] or ""
 
-    if line:match(HEADER_PATTERN) then
+    if is_header_line(lnum) then
       local start, _, block_end = get_block_range(lnum)
       if start and block_end then
         vim.api.nvim_buf_set_lines(manage_buf, start - 1, block_end, false, {})

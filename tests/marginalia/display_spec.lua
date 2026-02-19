@@ -195,4 +195,141 @@ describe("display", function()
     store.reorder:revert()
     store.save:revert()
   end)
+
+  it("does not treat header-like text in comments as a header", function()
+    local store_list_stub = stub(store, "list")
+    store_list_stub.returns({
+      {
+        id = "ann-fp1",
+        file = "src/main.lua",
+        line = 10,
+        end_line = 12,
+        comment = "see @.agent/workflows/speckit.tasks.md#35-44\nfor details",
+      },
+    })
+    stub(store, "reorder")
+    stub(store, "save")
+
+    local ok = pcall(display.open_manager)
+    assert.is_true(ok)
+
+    local manager_buf = vim.fn.bufnr("MarginaliaManager")
+    assert.is_true(manager_buf > 0)
+
+    local lines = vim.api.nvim_buf_get_lines(manager_buf, 0, -1, false)
+    -- Line 3: real header @src/main.lua#10-12
+    assert.are.same("@src/main.lua#10-12", lines[3])
+    -- Line 4: comment line that looks like a header
+    assert.are.same("see @.agent/workflows/speckit.tasks.md#35-44", lines[4])
+    -- Line 5: continuation
+    assert.are.same("for details", lines[5])
+
+    -- Verify extmarks: only the real header (line 3) should have an extmark
+    local ns = vim.api.nvim_create_namespace("marginalia_manager")
+    local extmarks = vim.api.nvim_buf_get_extmarks(manager_buf, ns, 0, -1, {})
+    assert.are.same(1, #extmarks)
+    assert.are.same(2, extmarks[1][2]) -- 0-indexed line 2 = line 3
+
+    vim.api.nvim_buf_delete(manager_buf, { force = true })
+    store.list:revert()
+    store.reorder:revert()
+    store.save:revert()
+  end)
+
+  it("does not treat header-like text in code blocks as a header", function()
+    local store_list_stub = stub(store, "list")
+    store_list_stub.returns({
+      {
+        id = "ann-fp2",
+        file = "docs/api.md",
+        line = 1,
+        end_line = 3,
+        code_chunk = "@config/settings.yaml#100-200\nsome_key: value",
+        comment = "config reference",
+      },
+    })
+    stub(store, "reorder")
+    stub(store, "save")
+
+    local ok = pcall(display.open_manager)
+    assert.is_true(ok)
+
+    local manager_buf = vim.fn.bufnr("MarginaliaManager")
+    assert.is_true(manager_buf > 0)
+
+    local lines = vim.api.nvim_buf_get_lines(manager_buf, 0, -1, false)
+    -- Line 3: real header
+    assert.are.same("@docs/api.md#1-3", lines[3])
+    -- Line 4: code fence open
+    assert.are.same("```md", lines[4])
+    -- Line 5: code line that looks like a header
+    assert.are.same("@config/settings.yaml#100-200", lines[5])
+    -- Line 6: code content
+    assert.are.same("some_key: value", lines[6])
+    -- Line 7: code fence close
+    assert.are.same("```", lines[7])
+    -- Line 8: comment
+    assert.are.same("config reference", lines[8])
+
+    -- Only 1 extmark (on the real header)
+    local ns = vim.api.nvim_create_namespace("marginalia_manager")
+    local extmarks = vim.api.nvim_buf_get_extmarks(manager_buf, ns, 0, -1, {})
+    assert.are.same(1, #extmarks)
+    assert.are.same(2, extmarks[1][2]) -- 0-indexed line 2 = line 3
+
+    vim.api.nvim_buf_delete(manager_buf, { force = true })
+    store.list:revert()
+    store.reorder:revert()
+    store.save:revert()
+  end)
+
+  it("keeps correct block boundaries with header-like comment between blocks", function()
+    local store_list_stub = stub(store, "list")
+    store_list_stub.returns({
+      {
+        id = "ann-fp3a",
+        file = "a.lua",
+        line = 1,
+        end_line = 1,
+        comment = "@b.lua#99\nthis references another file",
+      },
+      {
+        id = "ann-fp3b",
+        file = "b.lua",
+        line = 5,
+        end_line = 5,
+        comment = "real second block",
+      },
+    })
+    stub(store, "reorder")
+    stub(store, "save")
+
+    local ok = pcall(display.open_manager)
+    assert.is_true(ok)
+
+    local manager_buf = vim.fn.bufnr("MarginaliaManager")
+    assert.is_true(manager_buf > 0)
+
+    local lines = vim.api.nvim_buf_get_lines(manager_buf, 0, -1, false)
+    -- Block 1: header, separator, @a.lua#1, @b.lua#99 (comment), this references..., blank
+    -- Block 2: @b.lua#5, real second block
+    assert.are.same("@a.lua#1", lines[3])
+    assert.are.same("@b.lua#99", lines[4])
+    assert.are.same("this references another file", lines[5])
+    assert.are.same("", lines[6])
+    assert.are.same("@b.lua#5", lines[7])
+    assert.are.same("real second block", lines[8])
+
+    -- Exactly 2 extmarks on the real headers (lines 3 and 7)
+    local ns = vim.api.nvim_create_namespace("marginalia_manager")
+    local extmarks = vim.api.nvim_buf_get_extmarks(manager_buf, ns, 0, -1, {})
+    assert.are.same(2, #extmarks)
+    assert.are.same(2, extmarks[1][2]) -- line 3 (0-indexed: 2)
+    assert.are.same(6, extmarks[2][2]) -- line 7 (0-indexed: 6)
+
+    vim.api.nvim_buf_delete(manager_buf, { force = true })
+    store.list:revert()
+    store.reorder:revert()
+    store.save:revert()
+  end)
 end)
