@@ -212,7 +212,8 @@ function M.render_manager()
 
     -- Header line: @file#line_range
     local line_range = format_line_range(item)
-    table.insert(lines, string.format("@%s#%s", item.file or "unknown", line_range))
+    local display_file = vim.fn.fnamemodify(item.file or "unknown", ":.")
+    table.insert(lines, string.format("@%s#%s", display_file, line_range))
 
     -- Code block (if code_chunk exists)
     local code = item.code_chunk or ""
