@@ -14,25 +14,10 @@ function M.setup(opts)
   config.include_code = opts.include_code or false
 end
 
----Process the current visual selection and prompt for annotation
-function M.process_selection()
-  -- Get visual selection range
-  local start_pos = vim.fn.getpos("'<")
-  local end_pos = vim.fn.getpos("'>")
-  local start_line = start_pos[2]
-  local end_line = end_pos[2]
-
-  -- Handle case where marks are invalid (e.g. not set yet)
-  if start_line == 0 then
-    print("No selection found.")
-    return
-  end
-
-  -- Swap if needed
-  if start_line > end_line then
-    start_line, end_line = end_line, start_line
-  end
-
+---Prompt for annotation on the given line range and save
+---@param start_line number
+---@param end_line number
+local function annotate_range(start_line, end_line)
   -- Get content
   local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
   local code_chunk = table.concat(lines, "\n")
@@ -87,6 +72,34 @@ function M.process_selection()
 
     print("Marginalia: Annotation saved & copied to clipboard.")
   end)
+end
+
+---Process the current visual selection and prompt for annotation
+function M.process_selection()
+  -- Get visual selection range
+  local start_pos = vim.fn.getpos("'<")
+  local end_pos = vim.fn.getpos("'>")
+  local start_line = start_pos[2]
+  local end_line = end_pos[2]
+
+  -- Handle case where marks are invalid (e.g. not set yet)
+  if start_line == 0 then
+    print("No selection found.")
+    return
+  end
+
+  -- Swap if needed
+  if start_line > end_line then
+    start_line, end_line = end_line, start_line
+  end
+
+  annotate_range(start_line, end_line)
+end
+
+---Annotate the current cursor line
+function M.process_line()
+  local line = vim.fn.line(".")
+  annotate_range(line, line)
 end
 
 return M

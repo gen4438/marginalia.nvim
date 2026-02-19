@@ -45,6 +45,10 @@ With `include_code = true`: >
     Press <CR> in Normal mode to submit.
     Trailing whitespace and blank lines are trimmed from input.
 
+:MarginaliaAnnotateLine                              *MarginaliaAnnotateLine*
+    Annotate the current cursor line in normal mode.
+    Same behavior as |MarginaliaAnnotate| but targets a single line.
+
 :MarginaliaList                                              *MarginaliaList*
     Open Quickfix list with all annotations for the current project.
 
@@ -108,6 +112,10 @@ require("marginalia").setup({opts})
 require("marginalia").annotate()
     Annotate the current visual selection.
 
+                                                  *marginalia.annotate_line()*
+require("marginalia").annotate_line()
+    Annotate the current cursor line.
+
                                                       *marginalia.open_list()*
 require("marginalia").open_list()
     Open Quickfix list with all annotations.
@@ -122,8 +130,13 @@ require("marginalia").search()
 
 KEYMAPPINGS                                          *marginalia-keymappings*
 
-If `default_mappings` is enabled in setup:
-    <leader>ma  - Annotate selection (Visual Mode)
+When `keymaps` is set in setup, the following mappings are created.
+Omitted keys use defaults. Set a key to `false` to disable it.
+
+    <leader>ma  - Annotate selection (Visual mode) / current line (Normal mode)
+    <leader>ml  - List annotations (Normal mode)
+    <leader>mm  - Open manager (Normal mode)
+    <leader>ms  - Search annotations (Normal mode)
 
 ==============================================================================
 5. CONFIGURATION                                     *marginalia-configuration*
@@ -137,8 +150,13 @@ Default configuration:
         -- Include code block in generated Markdown
         include_code = false,
 
-        -- Enable default mappings
-        default_mappings = false,
+        -- Keymappings (omit to disable all mappings)
+        -- keymaps = {
+        --     annotate = "<leader>ma",  -- Visual + Normal mode
+        --     list     = "<leader>ml",
+        --     manager  = "<leader>mm",
+        --     search   = "<leader>ms",
+        -- },
     })
 <
 ==============================================================================

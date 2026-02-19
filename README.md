@@ -25,14 +25,13 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
   config = function()
     require("marginalia").setup({
       -- include_code = true, -- Include code block in generated Markdown (default: false)
-      -- default_mappings = true, -- Enable <leader>ma in visual mode
+      keymaps = {
+        -- annotate = "<leader>ma", -- Visual + Normal mode (default)
+        -- list     = "<leader>ml", -- Normal mode (default)
+        -- manager  = "<leader>mm", -- Normal mode (default)
+        -- search   = "<leader>ms", -- Normal mode (default)
+      },
     })
-
-    -- Recommended mappings
-    vim.keymap.set("v", "<leader>ma", ":MarginaliaAnnotate<CR>", { desc = "Annotate Selection" })
-    vim.keymap.set("n", "<leader>ml", ":MarginaliaList<CR>", { desc = "List Annotations" })
-    vim.keymap.set("n", "<leader>mm", ":MarginaliaManager<CR>", { desc = "Manage Annotations" })
-    vim.keymap.set("n", "<leader>ms", ":MarginaliaSearch<CR>", { desc = "Search Annotations" })
   end
 }
 ```
@@ -41,8 +40,8 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ### 1. Annotate Code
 
-1. Select a block of code in **Visual Mode**.
-2. Run `:MarginaliaAnnotate` (or use your keymapping).
+1. Select a block of code in **Visual Mode**, or place your cursor on a line in **Normal Mode**.
+2. Run `:MarginaliaAnnotate` (visual) or `:MarginaliaAnnotateLine` (normal), or use your keymapping.
 3. A floating window will appear. Type your comment / annotation.
 4. Press `<CR>` (Enter) in Normal mode to save.
    - The annotation is saved to disk.
@@ -120,6 +119,7 @@ Text objects `ia` / `aa` work with all operators: `dia`, `yaa`, `cia`, etc.
 | Command | Description |
 |---|---|
 | `:MarginaliaAnnotate` | Annotate selected code (visual mode) |
+| `:MarginaliaAnnotateLine` | Annotate current line (normal mode) |
 | `:MarginaliaList` | Open quickfix list with annotations |
 | `:MarginaliaManager` | Open annotation manager buffer |
 | `:MarginaliaSearch` | Fuzzy search annotations (fzf-lua) |
@@ -130,6 +130,7 @@ Text objects `ia` / `aa` work with all operators: `dia`, `yaa`, `cia`, etc.
 local marginalia = require("marginalia")
 
 marginalia.annotate()      -- Annotate current visual selection
+marginalia.annotate_line() -- Annotate current line
 marginalia.open_list()     -- Open quickfix list
 marginalia.open_manager()  -- Open manager buffer
 marginalia.search()        -- Fuzzy search with fzf-lua
