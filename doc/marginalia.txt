@@ -60,13 +60,20 @@ With `include_code = true`: >
 3. MANAGER BUFFER                                        *marginalia-manager*
 
 The manager buffer displays annotations with line ranges (e.g. `file:10-15`).
+It behaves like a normal Vim buffer — standard editing operations work:
 
-Keymaps in the manager buffer:
+    dd + p   - Reorder annotations (cut and paste lines)
+    Vjjd     - Visual select multiple lines and delete
+    u        - Undo changes
 
-    <CR>  - Open the file at the annotation's location
-    dd    - Delete annotation under cursor
-    r     - Refresh list
-    q     - Close buffer
+Special keymaps:
+
+    <CR>  - Open the file and visually select the annotated range
+    q     - Save changes and close
+    :w    - Save changes without closing
+
+Changes (deletions, reordering) are synced back to the annotation store
+on save or close.
 
 ==============================================================================
 4. API                                                       *marginalia-api*

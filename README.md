@@ -76,11 +76,13 @@ Explanation of main function
 
 ### 3. Manage Annotations
 
-- `:MarginaliaManager` - Open a management buffer.
-  - `<CR>` - Open the file at the annotation's location.
-  - `dd` - Delete the annotation under the cursor.
-  - `r` - Refresh the list.
-  - `q` - Close.
+- `:MarginaliaManager` - Open an editable management buffer.
+  - The buffer behaves like a normal Vim buffer: use `dd`, `p`, Visual select, etc.
+  - `dd` + `p` to reorder annotations.
+  - Visual select + `d` to delete multiple annotations at once.
+  - `<CR>` - Open the file and visually select the annotated range.
+  - `q` - Save changes and close.
+  - `:w` - Save changes without closing.
 
 ### 4. Search Annotations
 
