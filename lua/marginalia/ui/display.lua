@@ -13,6 +13,7 @@ function M.setup(opts)
   if opts.textobject then
     config.textobject = opts.textobject
   end
+  config.include_code = opts.include_code or false
 end
 
 ---Populate and open quickfix list with annotations
@@ -216,9 +217,9 @@ function M.render_manager()
     local display_file = vim.fn.fnamemodify(item.file or "unknown", ":.")
     table.insert(lines, string.format("@%s#%s", display_file, line_range))
 
-    -- Code block (if code_chunk exists)
+    -- Code block (if code_chunk exists and include_code is enabled)
     local code = item.code_chunk or ""
-    if code ~= "" then
+    if config.include_code and code ~= "" then
       local ext = (item.file or ""):match("%.([%w_]+)$") or ""
       local lang = generate.ext_to_lang(ext)
       table.insert(lines, "```" .. lang)

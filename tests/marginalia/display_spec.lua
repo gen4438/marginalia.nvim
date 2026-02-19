@@ -88,6 +88,7 @@ describe("display", function()
   end)
 
   it("renders multi-line annotation blocks with code and comment", function()
+    display.setup({ include_code = true })
     local store_list_stub = stub(store, "list")
     store_list_stub.returns({
       {
@@ -275,6 +276,7 @@ describe("display", function()
   end)
 
   it("does not treat header-like text in code blocks as a header", function()
+    display.setup({ include_code = true })
     local store_list_stub = stub(store, "list")
     store_list_stub.returns({
       {
@@ -403,6 +405,7 @@ describe("display", function()
     end)
 
     it("renders empty comment after code block", function()
+      display.setup({ include_code = true })
       local buf = open_manager_with({
         {
           id = "ann-ec",
@@ -559,6 +562,7 @@ describe("display", function()
 
   describe("manager foldexpr", function()
     it("returns correct fold levels for buffer lines", function()
+      display.setup({ include_code = true })
       local buf = open_manager_with({
         {
           id = "fold-1",
@@ -665,6 +669,7 @@ describe("display", function()
 
   describe("manager foldtext", function()
     it("generates summary from block with code", function()
+      display.setup({ include_code = true })
       local buf = open_manager_with({
         {
           id = "ft-1",
@@ -706,6 +711,7 @@ describe("display", function()
 
   describe("manager dd behavior", function()
     it("deletes entire block when dd on header line", function()
+      display.setup({ include_code = true })
       local buf = open_manager_with({
         {
           id = "dd-1",
@@ -766,6 +772,7 @@ describe("display", function()
 
   describe("manager extmark tracking", function()
     it("removes deleted annotation from ordered IDs on sync", function()
+      display.setup({ include_code = true })
       local buf = open_manager_with({
         {
           id = "ext-1",
@@ -913,6 +920,83 @@ describe("display", function()
       assert.are.same({ "sync-2" }, ordered)
 
       cleanup_manager(buf2)
+    end)
+  end)
+
+  describe("manager include_code option", function()
+    it("hides code blocks when include_code is false (default)", function()
+      display.setup({ include_code = false })
+      local buf = open_manager_with({
+        {
+          id = "ic-off",
+          file = "lua/test.lua",
+          line = 7,
+          end_line = 12,
+          code_chunk = "local x = 1",
+          comment = "first line\nsecond line",
+        },
+      })
+
+      local lines = get_lines(buf)
+      -- Line 3: @lua/test.lua#7-12
+      assert.are.same("@lua/test.lua#7-12", lines[3])
+      -- No code fence — comment starts immediately
+      assert.are.same("first line", lines[4])
+      assert.are.same("second line", lines[5])
+      assert.are.same(5, #lines)
+
+      -- Verify no code fence anywhere
+      for _, l in ipairs(lines) do
+        assert.falsy(l:match("^```"), "unexpected code fence: " .. l)
+      end
+
+      cleanup_manager(buf)
+    end)
+
+    it("shows code blocks when include_code is true", function()
+      display.setup({ include_code = true })
+      local buf = open_manager_with({
+        {
+          id = "ic-on",
+          file = "lua/test.lua",
+          line = 7,
+          end_line = 12,
+          code_chunk = "local x = 1",
+          comment = "first line\nsecond line",
+        },
+      })
+
+      local lines = get_lines(buf)
+      assert.are.same("@lua/test.lua#7-12", lines[3])
+      assert.are.same("```lua", lines[4])
+      assert.are.same("local x = 1", lines[5])
+      assert.are.same("```", lines[6])
+      assert.are.same("first line", lines[7])
+      assert.are.same("second line", lines[8])
+
+      cleanup_manager(buf)
+    end)
+
+    it("hides code blocks by default when setup is not called", function()
+      -- Reset config by calling setup with empty opts
+      display.setup({})
+      local buf = open_manager_with({
+        {
+          id = "ic-default",
+          file = "test.lua",
+          line = 1,
+          end_line = 1,
+          code_chunk = "x = 1",
+          comment = "a comment",
+        },
+      })
+
+      local lines = get_lines(buf)
+      assert.are.same("@test.lua#1", lines[3])
+      assert.are.same("a comment", lines[4])
+      assert.are.same(4, #lines)
+
+      cleanup_manager(buf)
     end)
   end)
 
