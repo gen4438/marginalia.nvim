@@ -423,6 +423,25 @@ describe("display", function()
 
       cleanup_manager(buf)
     end)
+
+    it("displays absolute file path as cwd-relative path", function()
+      local cwd = vim.fn.getcwd()
+      local abs_file = cwd .. "/src/main.lua"
+      local buf = open_manager_with({
+        {
+          id = "abs-1",
+          file = abs_file,
+          line = 10,
+          end_line = 15,
+          comment = "absolute path annotation",
+        },
+      })
+
+      local lines = get_lines(buf)
+      assert.are.same("@src/main.lua#10-15", lines[3])
+
+      cleanup_manager(buf)
+    end)
   end)
 
   describe("manager foldexpr", function()
