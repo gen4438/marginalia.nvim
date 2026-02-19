@@ -34,6 +34,16 @@ end
 -- Management buffer state
 local manage_buf = nil
 local line_to_id = {}
+local line_to_item = {}
+
+local function close_manager()
+  if manage_buf and vim.api.nvim_buf_is_valid(manage_buf) then
+    vim.cmd("bwipeout " .. manage_buf)
+  end
+  manage_buf = nil
+  line_to_id = {}
+  line_to_item = {}
+end
 
 local function normalize_for_manager_line(value)
   local text = tostring(value or "")
@@ -51,20 +61,30 @@ function M.render_manager()
   local items = store.list() or {}
   local lines = {}
   line_to_id = {}
+  line_to_item = {}
 
-  table.insert(lines, "# Marginalia Manager (dd: delete, r: refresh)")
+  table.insert(lines, "# Marginalia Manager (dd: delete, r: refresh, <CR>: open)")
   table.insert(lines, string.rep("-", 40))
 
   for _, item in ipairs(items) do
     local line_idx = #lines + 1
+    local start_line = tonumber(item.line) or 0
+    local end_line = tonumber(item.end_line) or start_line
+    local line_range
+    if end_line > start_line then
+      line_range = string.format("%d-%d", start_line, end_line)
+    else
+      line_range = tostring(start_line)
+    end
     local text = string.format(
-      "%s:%d | %s",
+      "%s:%s | %s",
       normalize_for_manager_line(item.file),
-      tonumber(item.line) or 0,
+      line_range,
       normalize_for_manager_line(item.comment)
     )
     table.insert(lines, text)
     line_to_id[line_idx] = item.id
+    line_to_item[line_idx] = item
   end
 
   vim.api.nvim_buf_set_option(manage_buf, "modifiable", true)
@@ -127,8 +147,30 @@ function M.open_manager()
     print("Refreshed.")
   end, opts)
 
+  vim.keymap.set("n", "<CR>", function()
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local line = cursor[1]
+    local item = line_to_item[line]
+
+    if item then
+      local file = item.file
+      local project = require("marginalia.utils.project")
+      local root = project.root()
+      if root then
+        file = root .. "/" .. file
+      end
+
+      -- Close manager and open the file
+      close_manager()
+      vim.cmd("edit " .. vim.fn.fnameescape(file))
+      pcall(vim.api.nvim_win_set_cursor, 0, { tonumber(item.line) or 1, 0 })
+    else
+      print("No annotation on this line.")
+    end
+  end, opts)
+
   vim.keymap.set("n", "q", function()
-    vim.cmd("bd " .. manage_buf)
+    close_manager()
   end, opts)
 end
 

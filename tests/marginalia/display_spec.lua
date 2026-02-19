@@ -56,6 +56,7 @@ describe("display", function()
         id = "ann-1",
         file = "lua/test.lua",
         line = 7,
+        end_line = 12,
         comment = "first line\nsecond line",
       },
     })
@@ -67,7 +68,32 @@ describe("display", function()
     assert.is_true(manager_buf > 0)
 
     local lines = vim.api.nvim_buf_get_lines(manager_buf, 0, -1, false)
-    assert.are.same("lua/test.lua:7 | first line\\nsecond line", lines[3])
+    assert.are.same("lua/test.lua:7-12 | first line\\nsecond line", lines[3])
+
+    vim.api.nvim_buf_delete(manager_buf, { force = true })
+    store.list:revert()
+  end)
+
+  it("renders single line number when line == end_line", function()
+    local store_list_stub = stub(store, "list")
+    store_list_stub.returns({
+      {
+        id = "ann-2",
+        file = "lua/test.lua",
+        line = 5,
+        end_line = 5,
+        comment = "single line",
+      },
+    })
+
+    local ok = pcall(display.open_manager)
+    assert.is_true(ok)
+
+    local manager_buf = vim.fn.bufnr("MarginaliaManager")
+    assert.is_true(manager_buf > 0)
+
+    local lines = vim.api.nvim_buf_get_lines(manager_buf, 0, -1, false)
+    assert.are.same("lua/test.lua:5 | single line", lines[3])
 
     vim.api.nvim_buf_delete(manager_buf, { force = true })
     store.list:revert()

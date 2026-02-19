@@ -7,11 +7,12 @@ Select code, add annotations, and generate Markdown context for AI prompts.
 ## Features
 
 - **Annotate**: Select code in visual mode and add comments via a floating window.
-- **Context Generation**: Automatically formats the selected code and your comment into Markdown with proper language syntax highlighting.
+- **Context Generation**: Automatically formats the selected code and your comment into Markdown.
 - **Clipboard Integration**: Copies the generated Markdown directly to your system clipboard (`+` register).
 - **Project Scope**: Annotations are saved per project.
 - **Quickfix Review**: View all annotations in the Quickfix list.
-- **Management Buffer**: dedicated buffer to list and delete annotations.
+- **Management Buffer**: Dedicated buffer to list, open, and delete annotations.
+- **fzf-lua Integration**: Fuzzy search annotations (requires [fzf-lua](https://github.com/ibhagwan/fzf-lua)).
 
 ## Installation
 
@@ -23,14 +24,15 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
   dependencies = { "nvim-lua/plenary.nvim" },
   config = function()
     require("marginalia").setup({
-      -- Optional configuration
-      -- default_mappings = true, -- if you want <leader>ma
+      -- include_code = true, -- Include code block in generated Markdown (default: false)
+      -- default_mappings = true, -- Enable <leader>ma in visual mode
     })
 
-    -- Recommended mapping
+    -- Recommended mappings
     vim.keymap.set("v", "<leader>ma", ":MarginaliaAnnotate<CR>", { desc = "Annotate Selection" })
     vim.keymap.set("n", "<leader>ml", ":MarginaliaList<CR>", { desc = "List Annotations" })
-    vim.keymap.set("n", "<leader>mm", function() require("marginalia.ui.display").open_manager() end, { desc = "Manage Annotations" })
+    vim.keymap.set("n", "<leader>mm", ":MarginaliaManager<CR>", { desc = "Manage Annotations" })
+    vim.keymap.set("n", "<leader>ms", ":MarginaliaSearch<CR>", { desc = "Search Annotations" })
   end
 }
 ```
@@ -40,35 +42,70 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ### 1. Annotate Code
 
 1. Select a block of code in **Visual Mode**.
-2. Run command `:MarginaliaAnnotate` (or use your keymapping).
+2. Run `:MarginaliaAnnotate` (or use your keymapping).
 3. A floating window will appear. Type your comment / annotation.
 4. Press `<CR>` (Enter) in Normal mode to save.
    - The annotation is saved to disk.
    - A Markdown snippet is generated and copied to your clipboard.
 
-**Example Output:**
+**Example Output (default):**
 
 ```markdown
-## Explanation of main function
-File: `src/main.rs:10-15`
+@src/main.rs#10-15
+
+Explanation of main function
+```
+
+**With `include_code = true`:**
+
+```markdown
+@src/main.rs#10-15
 
 \`\`\`rust
 fn main() {
   println!("Hello");
 }
 \`\`\`
+
+Explanation of main function
 ```
 
 ### 2. Review Annotations
 
-- Run `:MarginaliaList` to open the Quickfix list with all annotations for the current project.
+- `:MarginaliaList` - Open the Quickfix list with all annotations.
 
 ### 3. Manage Annotations
 
-- Run `:MarginaliaManage` (or the mapped Lua function) to open a management buffer.
-- Press `dd` on a line to delete that annotation.
-- Press `r` to refresh the list.
-- Press `q` to close.
+- `:MarginaliaManager` - Open a management buffer.
+  - `<CR>` - Open the file at the annotation's location.
+  - `dd` - Delete the annotation under the cursor.
+  - `r` - Refresh the list.
+  - `q` - Close.
+
+### 4. Search Annotations
+
+- `:MarginaliaSearch` - Fuzzy search annotations with fzf-lua.
+  - Requires [fzf-lua](https://github.com/ibhagwan/fzf-lua) to be installed.
+
+## Commands
+
+| Command | Description |
+|---|---|
+| `:MarginaliaAnnotate` | Annotate selected code (visual mode) |
+| `:MarginaliaList` | Open quickfix list with annotations |
+| `:MarginaliaManager` | Open annotation manager buffer |
+| `:MarginaliaSearch` | Fuzzy search annotations (fzf-lua) |
+
+## API
+
+```lua
+local marginalia = require("marginalia")
+
+marginalia.annotate()      -- Annotate current visual selection
+marginalia.open_list()     -- Open quickfix list
+marginalia.open_manager()  -- Open manager buffer
+marginalia.search()        -- Fuzzy search with fzf-lua
+```
 
 ## Development
 

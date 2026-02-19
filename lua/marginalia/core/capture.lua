@@ -5,6 +5,15 @@ local project = require("marginalia.utils.project")
 local generate = require("marginalia.core.generate")
 local clipboard = require("marginalia.utils.clipboard")
 
+local config = {}
+
+---Configure capture module
+---@param opts table|nil
+function M.setup(opts)
+  opts = opts or {}
+  config.include_code = opts.include_code or false
+end
+
 ---Process the current visual selection and prompt for annotation
 function M.process_selection()
   -- Get visual selection range
@@ -42,6 +51,19 @@ function M.process_selection()
       return
     end
 
+    -- Trim trailing blank lines
+    while #input_lines > 0 and input_lines[#input_lines]:match("^%s*$") do
+      table.remove(input_lines)
+    end
+    if #input_lines == 0 then
+      return
+    end
+
+    -- Trim trailing whitespace from each line
+    for i, l in ipairs(input_lines) do
+      input_lines[i] = l:gsub("%s+$", "")
+    end
+
     local comment = table.concat(input_lines, "\n")
     if comment:match("^%s*$") then
       return
@@ -60,7 +82,7 @@ function M.process_selection()
     store.save()
 
     -- Generate Markdown and copy to clipboard
-    local md = generate.markdown(item)
+    local md = generate.markdown(item, { include_code = config.include_code })
     clipboard.copy(md)
 
     print("Marginalia: Annotation saved & copied to clipboard.")
