@@ -18,6 +18,9 @@ function M.setup(opts)
   if not p:exists() then
     p:mkdir({ parents = true })
   end
+
+  -- Load existing annotations from disk
+  M.load()
 end
 
 ---Reset internal state (for testing)

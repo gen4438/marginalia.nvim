@@ -160,10 +160,18 @@ function M.open_manager()
         file = root .. "/" .. file
       end
 
-      -- Close manager and open the file
+      -- Close manager and open the file with visual selection
+      local start_line = tonumber(item.line) or 1
+      local end_line = tonumber(item.end_line) or start_line
       close_manager()
       vim.cmd("edit " .. vim.fn.fnameescape(file))
-      pcall(vim.api.nvim_win_set_cursor, 0, { tonumber(item.line) or 1, 0 })
+      pcall(function()
+        vim.api.nvim_win_set_cursor(0, { start_line, 0 })
+        vim.cmd("normal! V")
+        if end_line > start_line then
+          vim.api.nvim_win_set_cursor(0, { end_line, 0 })
+        end
+      end)
     else
       print("No annotation on this line.")
     end
