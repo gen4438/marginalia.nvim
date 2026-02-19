@@ -49,6 +49,7 @@ end
 local manage_buf = nil
 local ns_id = vim.api.nvim_create_namespace("marginalia_manager")
 local extmark_to_ann_id = {}
+local augroup = vim.api.nvim_create_augroup("marginalia_manager", { clear = true })
 
 ---Check if a line is an annotation header by extmark presence
 ---@param lnum number 1-based line number
@@ -325,13 +326,18 @@ function M.open_manager()
   if manage_buf and vim.api.nvim_buf_is_valid(manage_buf) then
     local wins = vim.fn.win_findbuf(manage_buf)
     if #wins > 0 then
+      -- Buffer is visible in a window: just re-render in place
       vim.api.nvim_set_current_win(wins[1])
-    else
-      vim.cmd("buffer " .. manage_buf)
+      M.render_manager()
+      vim.api.nvim_buf_set_option(manage_buf, "modified", false)
+      setup_fold_options()
+      return
     end
-    M.render_manager()
-    setup_fold_options()
-    return
+    -- Buffer is hidden (closed via :q etc.) - wipe it and create fresh
+    -- to ensure keymaps and autocmds are properly registered
+    pcall(vim.cmd, "bwipeout! " .. manage_buf)
+    manage_buf = nil
+    extmark_to_ann_id = {}
   end
 
   -- Create new buffer
@@ -394,10 +400,11 @@ function M.open_manager()
     if is_header_line(lnum) then
       local start, _, block_end = get_block_range(lnum)
       if start and block_end then
-        -- Remove the extmark so sync_manager won't include this annotation
+        -- Remove extmarks and their mappings so sync_manager won't include this annotation
         local marks = vim.api.nvim_buf_get_extmarks(manage_buf, ns_id, { start - 1, 0 }, { start - 1, 0 }, {})
         for _, mark in ipairs(marks) do
           extmark_to_ann_id[mark[1]] = nil
+          vim.api.nvim_buf_del_extmark(manage_buf, ns_id, mark[1])
         end
         vim.api.nvim_buf_set_lines(manage_buf, start - 1, block_end, false, {})
       end
@@ -492,13 +499,27 @@ function M.open_manager()
     end
   end, opts)
 
+  -- Clear augroup and re-register autocmds for this buffer
+  vim.api.nvim_create_augroup("marginalia_manager", { clear = true })
+
   -- BufWriteCmd: :w syncs to store without closing
   vim.api.nvim_create_autocmd("BufWriteCmd", {
+    group = augroup,
     buffer = manage_buf,
     callback = function()
       sync_manager()
       vim.api.nvim_buf_set_option(manage_buf, "modified", false)
       print("Marginalia: Annotations synced.")
+    end,
+  })
+
+  -- Reset state when buffer is externally wiped (e.g. :bwipeout, :bdelete)
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    group = augroup,
+    buffer = manage_buf,
+    callback = function()
+      manage_buf = nil
+      extmark_to_ann_id = {}
     end,
   })
 end

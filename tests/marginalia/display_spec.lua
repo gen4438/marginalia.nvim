@@ -816,6 +816,106 @@ describe("display", function()
     end)
   end)
 
+  describe("manager second open", function()
+    it("creates fresh buffer after hidden buffer is reopened", function()
+      local items = {
+        {
+          id = "reopen-1",
+          file = "a.lua",
+          line = 1,
+          end_line = 1,
+          comment = "first",
+        },
+        {
+          id = "reopen-2",
+          file = "b.lua",
+          line = 2,
+          end_line = 2,
+          comment = "second",
+        },
+      }
+      local buf1 = open_manager_with(items)
+
+      -- Simulate closing the window (buffer becomes hidden, not wiped)
+      -- The buffer has bufhidden=hide from nvim_create_buf(false, true)
+      vim.cmd("enew") -- switch to a new buffer, hiding the manager
+
+      -- Verify the old buffer is still valid (hidden)
+      assert.is_true(vim.api.nvim_buf_is_valid(buf1))
+
+      -- Revert stubs and re-stub for the second open
+      store.list:revert()
+      store.reorder:revert()
+      store.save:revert()
+      if store.get.revert then
+        store.get:revert()
+      end
+
+      -- Open manager again (second time)
+      local buf2 = open_manager_with(items)
+
+      -- A fresh buffer should have been created (old one wiped)
+      assert.is_not.equal(buf1, buf2)
+      assert.is_false(vim.api.nvim_buf_is_valid(buf1))
+
+      -- Verify content is correct
+      local lines = get_lines(buf2)
+      assert.are.same("@a.lua#1", lines[3])
+      assert.are.same("first", lines[4])
+
+      cleanup_manager(buf2)
+    end)
+
+    it("syncs deletion correctly after reopening manager", function()
+      local items = {
+        {
+          id = "sync-1",
+          file = "a.lua",
+          line = 1,
+          end_line = 1,
+          comment = "first",
+        },
+        {
+          id = "sync-2",
+          file = "b.lua",
+          line = 2,
+          end_line = 2,
+          comment = "second",
+        },
+      }
+      local buf1 = open_manager_with(items)
+
+      -- Close the manager window (buffer becomes hidden)
+      vim.cmd("enew")
+      assert.is_true(vim.api.nvim_buf_is_valid(buf1))
+
+      -- Revert stubs and re-stub for second open
+      store.list:revert()
+      store.reorder:revert()
+      store.save:revert()
+      if store.get.revert then
+        store.get:revert()
+      end
+
+      local buf2 = open_manager_with(items)
+
+      -- Delete the first annotation header (line 3) via dd keymap
+      vim.api.nvim_win_set_cursor(0, { 3, 0 })
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("dd", true, false, true), "x", false)
+
+      -- Save with :w
+      vim.cmd("write")
+
+      -- store.reorder should have been called without "sync-1"
+      assert.stub(store.reorder).was.called()
+      local last_call = store.reorder.calls[#store.reorder.calls]
+      local ordered = last_call.refs[1]
+      assert.are.same({ "sync-2" }, ordered)
+
+      cleanup_manager(buf2)
+    end)
+  end)
+
   describe("close_manager", function()
     it("closes manager buffer even when buffer has unsaved modifications", function()
       local buf = open_manager_with({
