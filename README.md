@@ -25,6 +25,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
   config = function()
     require("marginalia").setup({
       -- include_code = true, -- Include code block in generated Markdown (default: false)
+      -- textobject = "a",    -- Character for text objects/navigation: ia, aa, ]a, [a
       keymaps = {
         -- annotate = "<leader>ma", -- Visual + Normal mode (default)
         -- list     = "<leader>ml", -- Normal mode (default)

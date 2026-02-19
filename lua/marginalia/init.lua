@@ -14,6 +14,9 @@ function M.setup(opts)
   -- Initialize capture
   capture.setup(opts)
 
+  -- Initialize display
+  display.setup(opts)
+
   -- Create user commands for annotation
   -- Use range=true so that '<,'> marks are set correctly when invoked visually
   vim.api.nvim_create_user_command("MarginaliaAnnotate", function()

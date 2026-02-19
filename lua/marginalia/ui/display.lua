@@ -2,6 +2,19 @@ local M = {}
 local store = require("marginalia.core.store")
 local generate = require("marginalia.core.generate")
 
+local config = {
+  textobject = "a",
+}
+
+---Configure display module
+---@param opts table|nil
+function M.setup(opts)
+  opts = opts or {}
+  if opts.textobject then
+    config.textobject = opts.textobject
+  end
+end
+
 ---Populate and open quickfix list with annotations
 function M.open_list()
   local items = store.list()
@@ -37,7 +50,7 @@ local manage_buf = nil
 local ns_id = vim.api.nvim_create_namespace("marginalia_manager")
 local extmark_to_ann_id = {}
 
-local HEADER_PATTERN = "^@.+#%d+"
+local HEADER_PATTERN = "^@.*#%d+"
 
 ---Build line_range string from annotation item
 ---@param item table
@@ -247,10 +260,13 @@ function _G.marginalia_foldexpr()
     return ">1"
   end
 
-  -- Blank line between blocks
+  -- Blank line is a block separator only if the next non-blank line is a header
   if line == "" then
+    if lnum == vim.fn.line("$") then
+      return "0"
+    end
     local next_line = vim.fn.getline(lnum + 1)
-    if next_line == "" or next_line:match(HEADER_PATTERN) or lnum == vim.fn.line("$") then
+    if next_line:match(HEADER_PATTERN) then
       return "0"
     end
   end
@@ -267,7 +283,7 @@ function _G.marginalia_foldtext()
 
   -- First line is @file#line_range
   local header = lines[1] or ""
-  local file, line_range = header:match("^@(.+)#(.+)$")
+  local file, line_range = header:match("^@(.-)#(.+)$")
   if not file then
     return header
   end
@@ -407,21 +423,22 @@ function M.open_manager()
     end
   end
 
-  vim.keymap.set("o", "ia", function()
+  local c = config.textobject
+  vim.keymap.set("o", "i" .. c, function()
     select_annotation(true)
   end, opts)
-  vim.keymap.set("x", "ia", function()
+  vim.keymap.set("x", "i" .. c, function()
     select_annotation(true)
   end, opts)
-  vim.keymap.set("o", "aa", function()
+  vim.keymap.set("o", "a" .. c, function()
     select_annotation(false)
   end, opts)
-  vim.keymap.set("x", "aa", function()
+  vim.keymap.set("x", "a" .. c, function()
     select_annotation(false)
   end, opts)
 
-  -- Block navigation: [a / ]a
-  vim.keymap.set("n", "]a", function()
+  -- Block navigation: [c / ]c (configurable)
+  vim.keymap.set("n", "]" .. c, function()
     local count = vim.v.count1
     local cursor = vim.api.nvim_win_get_cursor(0)
     local lnum = cursor[1]
@@ -438,7 +455,7 @@ function M.open_manager()
     end
   end, opts)
 
-  vim.keymap.set("n", "[a", function()
+  vim.keymap.set("n", "[" .. c, function()
     local count = vim.v.count1
     local cursor = vim.api.nvim_win_get_cursor(0)
     local lnum = cursor[1]

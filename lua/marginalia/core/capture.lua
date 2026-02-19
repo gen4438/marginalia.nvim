@@ -24,6 +24,12 @@ local function annotate_range(start_line, end_line)
 
   -- Get file path relative to project root
   local file = vim.fn.expand("%:p")
+  if file == "" then
+    file = vim.api.nvim_buf_get_name(0)
+  end
+  if file == "" then
+    file = "[unsaved]"
+  end
   local root = project.root()
   if root and file:sub(1, #root) == root then
     -- +2 to skip leading separator

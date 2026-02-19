@@ -150,6 +150,10 @@ Default configuration:
         -- Include code block in generated Markdown
         include_code = false,
 
+        -- Text object / navigation character for manager buffer
+        -- Used as: i{char}, a{char}, ]{char}, [{char}
+        textobject = "a",
+
         -- Keymappings (omit to disable all mappings)
         -- keymaps = {
         --     annotate = "<leader>ma",  -- Visual + Normal mode
