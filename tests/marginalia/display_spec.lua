@@ -683,4 +683,42 @@ describe("display", function()
       cleanup_manager(buf)
     end)
   end)
+
+  describe("close_manager", function()
+    it("closes manager buffer even when buffer has unsaved modifications", function()
+      local buf = open_manager_with({
+        {
+          id = "close-1",
+          file = "a.lua",
+          line = 1,
+          end_line = 1,
+          comment = "original",
+        },
+      })
+
+      -- Modify the buffer to make it 'modified' (unsaved changes)
+      vim.api.nvim_buf_set_option(buf, "modifiable", true)
+      vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "extra line" })
+
+      -- Verify the buffer is modified
+      assert.is_true(vim.api.nvim_buf_get_option(buf, "modified"))
+
+      -- close_manager is called via <CR> keymap; simulate by calling open_manager
+      -- which internally tracks manage_buf, then trigger close via <CR>
+      -- Instead, directly test that bwipeout! works by pressing <CR> on a valid annotation
+      vim.api.nvim_win_set_cursor(0, { 3, 0 })
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "x", false)
+
+      -- The buffer should no longer exist (wiped out without error)
+      assert.is_true(not vim.api.nvim_buf_is_valid(buf))
+
+      -- Cleanup stubs
+      store.list:revert()
+      store.reorder:revert()
+      store.save:revert()
+      if store.get.revert then
+        store.get:revert()
+      end
+    end)
+  end)
 end)

@@ -188,7 +188,7 @@ end
 local function close_manager()
   if manage_buf and vim.api.nvim_buf_is_valid(manage_buf) then
     sync_manager()
-    vim.cmd("bwipeout " .. manage_buf)
+    vim.cmd("bwipeout! " .. manage_buf)
   end
   manage_buf = nil
   extmark_to_ann_id = {}
@@ -410,6 +410,12 @@ function M.open_manager()
     local start, content_end, block_end = get_block_range(lnum)
     if not start then
       return
+    end
+
+    -- Exit any existing visual mode to reset anchor
+    local mode = vim.fn.mode()
+    if mode:match("[vV\22]") then
+      vim.cmd("normal! " .. mode)
     end
 
     if inner then
