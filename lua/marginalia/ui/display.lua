@@ -390,6 +390,11 @@ function M.open_manager()
     if is_header_line(lnum) then
       local start, _, block_end = get_block_range(lnum)
       if start and block_end then
+        -- Remove the extmark so sync_manager won't include this annotation
+        local marks = vim.api.nvim_buf_get_extmarks(manage_buf, ns_id, { start - 1, 0 }, { start - 1, 0 }, {})
+        for _, mark in ipairs(marks) do
+          extmark_to_ann_id[mark[1]] = nil
+        end
         vim.api.nvim_buf_set_lines(manage_buf, start - 1, block_end, false, {})
       end
     else
