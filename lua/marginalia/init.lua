@@ -40,6 +40,23 @@ function M.setup(opts)
     require("marginalia.ui.display").open_manager()
   end, { desc = "Open annotation manager" })
 
+  -- Sort annotations
+  vim.api.nvim_create_user_command("MarginaliaSort", function(cmd_opts)
+    local sort_args = ""
+    if cmd_opts.bang then
+      sort_args = "! "
+    end
+    sort_args = sort_args .. (cmd_opts.args or "")
+    store.sort(sort_args)
+    store.save()
+    -- Re-render manager if it's open
+    local manager_buf = vim.fn.bufnr("MarginaliaManager")
+    if manager_buf > 0 and vim.api.nvim_buf_is_valid(manager_buf) then
+      display.render_manager()
+      vim.api.nvim_buf_set_option(manager_buf, "modified", false)
+    end
+  end, { bang = true, nargs = "?", desc = "Sort annotations (passes flags to :sort)" })
+
   -- fzf-lua search
   vim.api.nvim_create_user_command("MarginaliaSearch", function()
     require("marginalia.integrations.fzf").pick()

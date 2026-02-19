@@ -82,6 +82,65 @@ function M.get(id)
   return nil
 end
 
+---Sort annotations using Neovim's built-in :sort command
+---@param sort_args string|nil Arguments to pass to :sort (e.g. "n", "! n", "")
+---  "!" prefix is treated as :sort! (reverse), remaining flags are appended.
+function M.sort(sort_args)
+  if #annotations <= 1 then
+    return
+  end
+
+  sort_args = sort_args or ""
+
+  -- Generate sort keys: "@file#line_range\tindex"
+  -- Line numbers are zero-padded so lexicographic sort gives correct numeric order
+  local keys = {}
+  for i, item in ipairs(annotations) do
+    local start_line = tonumber(item.line) or 0
+    local end_line = tonumber(item.end_line) or start_line
+    local line_range
+    if end_line > start_line then
+      line_range = string.format("%010d-%010d", start_line, end_line)
+    else
+      line_range = string.format("%010d", start_line)
+    end
+    table.insert(keys, string.format("@%s#%s\t%d", item.file or "", line_range, i))
+  end
+
+  -- Use a temp buffer with :sort command
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, keys)
+
+  -- Build :sort command: "!" must be directly attached (":sort!" not ":sort !")
+  local bang = ""
+  local flags = sort_args
+  if flags:match("^!") then
+    bang = "!"
+    flags = flags:sub(2):match("^%s*(.*)$") or ""
+  end
+  local sort_cmd = "sort" .. bang
+  if flags ~= "" then
+    sort_cmd = sort_cmd .. " " .. flags
+  end
+
+  vim.api.nvim_buf_call(buf, function()
+    vim.cmd(sort_cmd)
+  end)
+
+  local sorted_lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  vim.api.nvim_buf_delete(buf, { force = true })
+
+  -- Extract indices and reorder annotations
+  local new_annotations = {}
+  for _, line in ipairs(sorted_lines) do
+    local idx = tonumber(line:match("\t(%d+)$"))
+    if idx and annotations[idx] then
+      table.insert(new_annotations, annotations[idx])
+    end
+  end
+  annotations = new_annotations
+end
+
 ---Reorder and filter annotations by ordered list of IDs
 ---Annotations not in ordered_ids are removed.
 ---@param ordered_ids string[]

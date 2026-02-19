@@ -205,7 +205,7 @@ function M.render_manager()
   local lines = {}
   local ann_lines = {} -- { line_idx (1-based), ann_id }
 
-  table.insert(lines, "# Marginalia Manager (<CR>: open, q: save & close, za: toggle fold)")
+  table.insert(lines, "# Marginalia Manager (<CR>: open, q: save & close, za: toggle fold, S: sort)")
   table.insert(lines, string.rep("-", 60))
 
   for idx, item in ipairs(items) do
@@ -390,6 +390,14 @@ function M.open_manager()
   -- q: save & close
   vim.keymap.set("n", "q", function()
     close_manager()
+  end, opts)
+
+  -- S: sort annotations (default: lexicographic by header)
+  vim.keymap.set("n", "S", function()
+    store.sort()
+    store.save()
+    M.render_manager()
+    vim.api.nvim_buf_set_option(manage_buf, "modified", false)
   end, opts)
 
   -- dd: block-aware delete (only when cursor is on a header line)

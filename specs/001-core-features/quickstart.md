@@ -17,7 +17,7 @@
 
 3.  **テストの実行 (TDD)**:
     bustedスタイルのテストを実行するために `plenary.test_harness` を使用します。
-    
+
     `Makefile` が提供されています（または作成する必要があります）:
     ```bash
     make test
