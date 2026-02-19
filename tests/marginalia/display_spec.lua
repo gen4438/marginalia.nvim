@@ -424,16 +424,16 @@ describe("display", function()
       cleanup_manager(buf)
     end)
 
-    it("displays absolute file path as cwd-relative path", function()
+    it("displays absolute file path inside cwd as relative path", function()
       local cwd = vim.fn.getcwd()
       local abs_file = cwd .. "/src/main.lua"
       local buf = open_manager_with({
         {
-          id = "abs-1",
+          id = "abs-in-cwd",
           file = abs_file,
           line = 10,
           end_line = 15,
-          comment = "absolute path annotation",
+          comment = "inside cwd",
         },
       })
 
@@ -441,6 +441,119 @@ describe("display", function()
       assert.are.same("@src/main.lua#10-15", lines[3])
 
       cleanup_manager(buf)
+    end)
+
+    it("displays absolute file path outside cwd as absolute path", function()
+      local abs_file = "/tmp/external_project/file.lua"
+      local buf = open_manager_with({
+        {
+          id = "abs-out-cwd",
+          file = abs_file,
+          line = 3,
+          end_line = 3,
+          comment = "outside cwd",
+        },
+      })
+
+      local lines = get_lines(buf)
+      assert.are.same("@/tmp/external_project/file.lua#3", lines[3])
+
+      cleanup_manager(buf)
+    end)
+  end)
+
+  describe("manager CR navigation", function()
+    it("opens relative path by joining with project root", function()
+      local buf = open_manager_with({
+        {
+          id = "nav-rel",
+          file = "src/foo.lua",
+          line = 1,
+          end_line = 1,
+          comment = "relative",
+        },
+      })
+
+      local project = require("marginalia.utils.project")
+      stub(project, "root").returns("/project/root")
+
+      local cmd_stub = stub(vim, "cmd")
+
+      vim.api.nvim_win_set_cursor(0, { 3, 0 })
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "x", false)
+
+      local edit_arg = nil
+      for _, call in ipairs(cmd_stub.calls) do
+        local arg = tostring(call.refs[1])
+        if arg:match("^edit ") then
+          edit_arg = arg
+          break
+        end
+      end
+
+      assert.is_not_nil(edit_arg)
+      assert.truthy(edit_arg:find("/project/root/src/foo.lua", 1, true))
+
+      project.root:revert()
+      vim.cmd:revert()
+      -- bwipeout! was stubbed so the buffer still exists; delete it manually
+      if vim.api.nvim_buf_is_valid(buf) then
+        vim.api.nvim_buf_delete(buf, { force = true })
+      end
+      store.list:revert()
+      store.reorder:revert()
+      store.save:revert()
+      if store.get.revert then
+        store.get:revert()
+      end
+    end)
+
+    it("opens absolute path without joining project root", function()
+      local abs_file = "/tmp/external_project/bar.lua"
+      local buf = open_manager_with({
+        {
+          id = "nav-abs",
+          file = abs_file,
+          line = 5,
+          end_line = 5,
+          comment = "external",
+        },
+      })
+
+      local project = require("marginalia.utils.project")
+      stub(project, "root").returns("/project/root")
+
+      local cmd_stub = stub(vim, "cmd")
+
+      vim.api.nvim_win_set_cursor(0, { 3, 0 })
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "x", false)
+
+      local edit_arg = nil
+      for _, call in ipairs(cmd_stub.calls) do
+        local arg = tostring(call.refs[1])
+        if arg:match("^edit ") then
+          edit_arg = arg
+          break
+        end
+      end
+
+      assert.is_not_nil(edit_arg)
+      -- Must be the bare absolute path, not /project/root/tmp/...
+      assert.truthy(edit_arg:find(vim.fn.fnameescape(abs_file), 1, true))
+      assert.falsy(edit_arg:find("/project/root" .. abs_file, 1, true))
+
+      project.root:revert()
+      vim.cmd:revert()
+      -- bwipeout! was stubbed so the buffer still exists; delete it manually
+      if vim.api.nvim_buf_is_valid(buf) then
+        vim.api.nvim_buf_delete(buf, { force = true })
+      end
+      store.list:revert()
+      store.reorder:revert()
+      store.save:revert()
+      if store.get.revert then
+        store.get:revert()
+      end
     end)
   end)
 

@@ -359,10 +359,13 @@ function M.open_manager()
     end
 
     local file = item.file
-    local project = require("marginalia.utils.project")
-    local root = project.root()
-    if root then
-      file = root .. "/" .. file
+    -- Only prepend project root for relative paths; absolute paths are used as-is
+    if file:sub(1, 1) ~= "/" then
+      local project = require("marginalia.utils.project")
+      local root = project.root()
+      if root then
+        file = root .. "/" .. file
+      end
     end
 
     local start_line = tonumber(item.line) or 1
