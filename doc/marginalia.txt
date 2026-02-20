@@ -1,0 +1,167 @@
+*marginalia.txt*  Code Annotation Plugin
+
+Author:  Gen
+License: MIT
+
+==============================================================================
+CONTENTS                                                  *marginalia-contents*
+
+    1. Intro ................................. |marginalia-intro|
+    2. Commands .............................. |marginalia-commands|
+    3. Manager Buffer ........................ |marginalia-manager|
+    4. API ................................... |marginalia-api|
+    5. Configuration ......................... |marginalia-configuration|
+
+==============================================================================
+1. INTRO                                                     *marginalia-intro*
+
+Marginalia allows you to select code and add annotations. These annotations
+are compiled into a Markdown context for AI prompts.
+
+Generated output format: >
+
+    @src/main.rs#10-15
+
+    Explanation of main function
+<
+With `include_code = true`: >
+
+    @src/main.rs#10-15
+
+    ```rust
+    fn main() {
+      println!("Hello");
+    }
+    ```
+
+    Explanation of main function
+<
+==============================================================================
+2. COMMANDS                                              *marginalia-commands*
+
+:MarginaliaAnnotate                                      *MarginaliaAnnotate*
+    Select code in visual mode and execute this to add an annotation.
+    Prompts for a comment in a floating window.
+    Press <CR> in Normal mode to submit.
+    Trailing whitespace and blank lines are trimmed from input.
+
+:MarginaliaAnnotateLine                              *MarginaliaAnnotateLine*
+    Annotate the current cursor line in normal mode.
+    Same behavior as |MarginaliaAnnotate| but targets a single line.
+
+:MarginaliaList                                              *MarginaliaList*
+    Open Quickfix list with all annotations for the current project.
+
+:MarginaliaManager                                        *MarginaliaManager*
+    Open a buffer to manage annotations.
+    See |marginalia-manager| for buffer keymaps.
+
+:MarginaliaSearch                                          *MarginaliaSearch*
+    Fuzzy search annotations using fzf-lua.
+    Requires fzf-lua (https://github.com/ibhagwan/fzf-lua) to be installed.
+
+==============================================================================
+3. MANAGER BUFFER                                        *marginalia-manager*
+
+The manager buffer displays annotations using Vim folds. By default all
+annotations are folded into a one-line summary (`file:line_range | comment`).
+Expand folds to see the full Markdown output with code blocks and comments.
+
+FOLD CONTROLS ~
+                                                    *marginalia-manager-folds*
+    za    - Toggle fold for annotation under cursor
+    zR    - Expand all annotations (full Markdown view)
+    zM    - Collapse all annotations (summary view)
+
+NAVIGATION ~
+                                               *marginalia-manager-navigation*
+    ]a    - Jump to next annotation block (supports count, e.g. 3]a)
+    [a    - Jump to previous annotation block
+
+TEXT OBJECTS ~
+                                             *marginalia-manager-textobjects*
+    ia    - Inner annotation: code + comment lines (excludes header)
+    aa    - A annotation: entire block including header and separator
+
+    These work with all operators: `dia`, `daa`, `yia`, `yaa`, `cia`, etc.
+
+EDITING ~
+                                                  *marginalia-manager-editing*
+    dd    - On a header line (@file#...): deletes the entire block
+            On a comment/code line: deletes only that line (normal edit)
+    daa   - Delete entire annotation block from anywhere in the block
+    u     - Undo changes
+
+SPECIAL KEYMAPS ~
+
+    <CR>  - Open the file and visually select the annotated range
+    q     - Save changes and close
+    :w    - Save changes without closing
+
+Changes (deletions, reordering) are synced back to the annotation store
+on save or close.
+
+==============================================================================
+4. API                                                       *marginalia-api*
+
+                                                          *marginalia.setup()*
+require("marginalia").setup({opts})
+    Initialize the plugin. See |marginalia-configuration|.
+
+                                                       *marginalia.annotate()*
+require("marginalia").annotate()
+    Annotate the current visual selection.
+
+                                                  *marginalia.annotate_line()*
+require("marginalia").annotate_line()
+    Annotate the current cursor line.
+
+                                                      *marginalia.open_list()*
+require("marginalia").open_list()
+    Open Quickfix list with all annotations.
+
+                                                   *marginalia.open_manager()*
+require("marginalia").open_manager()
+    Open the annotation manager buffer.
+
+                                                         *marginalia.search()*
+require("marginalia").search()
+    Fuzzy search annotations with fzf-lua.
+
+KEYMAPPINGS                                          *marginalia-keymappings*
+
+When `keymaps` is set in setup, the following mappings are created.
+Omitted keys use defaults. Set a key to `false` to disable it.
+
+    <leader>ma  - Annotate selection (Visual mode) / current line (Normal mode)
+    <leader>ml  - List annotations (Normal mode)
+    <leader>mm  - Open manager (Normal mode)
+    <leader>ms  - Search annotations (Normal mode)
+
+==============================================================================
+5. CONFIGURATION                                     *marginalia-configuration*
+
+Default configuration:
+>lua
+    require("marginalia").setup({
+        -- Directory to store json files
+        data_dir = vim.fn.stdpath("data") .. "/marginalia",
+
+        -- Include code block in generated Markdown
+        include_code = false,
+
+        -- Text object / navigation character for manager buffer
+        -- Used as: i{char}, a{char}, ]{char}, [{char}
+        textobject = "a",
+
+        -- Keymappings (omit to disable all mappings)
+        -- keymaps = {
+        --     annotate = "<leader>ma",  -- Visual + Normal mode
+        --     list     = "<leader>ml",
+        --     manager  = "<leader>mm",
+        --     search   = "<leader>ms",
+        -- },
+    })
+<
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
