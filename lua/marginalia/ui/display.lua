@@ -75,23 +75,37 @@ local function format_line_range(item)
   return tostring(start_line)
 end
 
----Parse comment text from a block range in the buffer (skipping code fences)
+---Parse comment and code text from a block range in the buffer
 ---@param buf_lines string[] all buffer lines
 ---@param start number 1-based header line
 ---@param content_end number 1-based last content line
----@return string comment text
+---@return string comment text, string|nil code chunk
 local function parse_comment_from_block(buf_lines, start, content_end)
   local comment_lines = {}
+  local code_lines = {}
   local in_code_fence = false
   for i = start + 1, content_end do
     local l = buf_lines[i] or ""
     if l:match("^```") then
-      in_code_fence = not in_code_fence
-    elseif not in_code_fence then
-      table.insert(comment_lines, l)
+      if not in_code_fence then
+        in_code_fence = true
+      else
+        in_code_fence = false
+      end
+    else
+      if in_code_fence then
+        table.insert(code_lines, l)
+      else
+        table.insert(comment_lines, l)
+      end
     end
   end
-  return table.concat(comment_lines, "\n")
+  local comment = table.concat(comment_lines, "\n")
+  local code_chunk = nil
+  if #code_lines > 0 then
+    code_chunk = table.concat(code_lines, "\n")
+  end
+  return comment, code_chunk
 end
 
 ---Sync buffer state (order, deletions, comment edits) back to store
@@ -145,10 +159,16 @@ local function sync_manager()
       end
     end
 
-    -- Update comment in store
+    -- Update comment and code in store
     local item = store.get(v.id)
     if item then
-      item.comment = parse_comment_from_block(buf_lines, block_start, content_end)
+      local comment, code_chunk = parse_comment_from_block(buf_lines, block_start, content_end)
+      item.comment = comment
+      if code_chunk then
+        item.code_chunk = code_chunk
+      else
+        item.code_chunk = nil
+      end
     end
   end
 

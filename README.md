@@ -70,6 +70,8 @@ fn main() {
 Explanation of main function
 ```
 
+*Note: You can override the `include_code` setting per-invocation by using the specific commands: `:MarginaliaAnnotateCode`, `:MarginaliaAnnotateNoCode`, `:MarginaliaAnnotateLineCode`, or `:MarginaliaAnnotateLineNoCode`.*
+
 ### 2. Review Annotations
 
 - `:MarginaliaList` - Open the Quickfix list with all annotations.
@@ -119,8 +121,12 @@ Text objects `ia` / `aa` work with all operators: `dia`, `yaa`, `cia`, etc.
 
 | Command | Description |
 |---|---|
-| `:MarginaliaAnnotate` | Annotate selected code (visual mode) |
-| `:MarginaliaAnnotateLine` | Annotate current line (normal mode) |
+| `:MarginaliaAnnotate` | Annotate selected code (visual mode, uses options) |
+| `:MarginaliaAnnotateCode` | Annotate selected code (visual mode, includes snippet) |
+| `:MarginaliaAnnotateNoCode` | Annotate selected code (visual mode, excludes snippet) |
+| `:MarginaliaAnnotateLine` | Annotate current line (normal mode, uses options) |
+| `:MarginaliaAnnotateLineCode` | Annotate current line (normal mode, includes snippet) |
+| `:MarginaliaAnnotateLineNoCode` | Annotate current line (normal mode, excludes snippet) |
 | `:MarginaliaList` | Open quickfix list with annotations |
 | `:MarginaliaManager` | Open annotation manager buffer |
 | `:MarginaliaSearch` | Fuzzy search annotations (fzf-lua) |

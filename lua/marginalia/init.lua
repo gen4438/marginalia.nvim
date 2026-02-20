@@ -1,4 +1,6 @@
 local M = {}
+M.version = "0.0.0"
+
 local store = require("marginalia.core.store")
 local capture = require("marginalia.core.capture")
 local display = require("marginalia.ui.display")
@@ -23,12 +25,40 @@ function M.setup(opts)
     capture.process_selection()
   end, {
     range = true,
-    desc = "Annotate selected code block",
+    desc = "Annotate selected code block (default)",
+  })
+
+  vim.api.nvim_create_user_command("MarginaliaAnnotateCode", function()
+    capture.process_selection({ include_code = true })
+  end, {
+    range = true,
+    desc = "Annotate selected code block (include code)",
+  })
+
+  vim.api.nvim_create_user_command("MarginaliaAnnotateNoCode", function()
+    capture.process_selection({ include_code = false })
+  end, {
+    range = true,
+    desc = "Annotate selected code block (exclude code)",
   })
 
   vim.api.nvim_create_user_command("MarginaliaAnnotateLine", function()
     capture.process_line()
-  end, { desc = "Annotate current line" })
+  end, {
+    desc = "Annotate current line (default)",
+  })
+
+  vim.api.nvim_create_user_command("MarginaliaAnnotateLineCode", function()
+    capture.process_line({ include_code = true })
+  end, {
+    desc = "Annotate current line (include code)",
+  })
+
+  vim.api.nvim_create_user_command("MarginaliaAnnotateLineNoCode", function()
+    capture.process_line({ include_code = false })
+  end, {
+    desc = "Annotate current line (exclude code)",
+  })
 
   -- List annotations
   vim.api.nvim_create_user_command("MarginaliaList", function()

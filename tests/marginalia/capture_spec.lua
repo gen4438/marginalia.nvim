@@ -57,4 +57,46 @@ describe("capture", function()
     store.save:revert()
     clipboard.copy:revert()
   end)
+
+  it("captures selection with include_code=true, handling code block in input", function()
+    local ui_open_stub = stub(ui, "open")
+    local store_add_stub = stub(store, "add")
+    stub(store, "save")
+    stub(clipboard, "copy")
+
+    -- Setup text buffer
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "local a = 1", "local b = 2" })
+    vim.bo[buf].filetype = "lua"
+    vim.api.nvim_set_current_buf(buf)
+
+    -- Set visual marks manually to simulate selection
+    vim.api.nvim_buf_set_mark(buf, "<", 1, 0, {})
+    vim.api.nvim_buf_set_mark(buf, ">", 2, 0, {})
+
+    -- Run capture
+    capture.process_selection({ include_code = true })
+
+    -- Validate initial lines sent to ui
+    assert.stub(ui_open_stub).was.called()
+    local opts = ui_open_stub.calls[1].refs[2]
+    assert.truthy(opts.initial_lines)
+    assert.are.same({ "", "", "---", "```lua", "local a = 1", "local b = 2", "```" }, opts.initial_lines)
+
+    -- Simulate user making a comment and editing the code chunk
+    local callback = ui_open_stub.calls[1].refs[1]
+    callback({ "Some comment", "---", "```lua", "local a = 3", "```" })
+
+    -- Expect store.add to be called with correct data
+    assert.stub(store_add_stub).was.called()
+    local arg = store_add_stub.calls[1].refs[1]
+
+    assert.are.same("Some comment", arg.comment)
+    assert.are.same("local a = 3", arg.code_chunk)
+
+    ui.open:revert()
+    store.add:revert()
+    store.save:revert()
+    clipboard.copy:revert()
+  end)
 end)
