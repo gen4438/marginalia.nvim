@@ -1000,6 +1000,191 @@ describe("display", function()
     end)
   end)
 
+  describe("manager sync robustness", function()
+    it("excludes orphaned extmarks when block lines are manually deleted", function()
+      local items = {
+        {
+          id = "orphan-1",
+          file = "a.lua",
+          line = 1,
+          end_line = 1,
+          comment = "first",
+        },
+        {
+          id = "orphan-2",
+          file = "b.lua",
+          line = 2,
+          end_line = 2,
+          comment = "second",
+        },
+      }
+      local buf = open_manager_with(items)
+
+      -- Buffer:
+      -- 1: # Marginalia Manager...
+      -- 2: ----...
+      -- 3: @a.lua#1       [extmark -> orphan-1]
+      -- 4: first
+      -- 5: (blank)
+      -- 6: @b.lua#2       [extmark -> orphan-2]
+      -- 7: second
+
+      -- Manually delete lines 3-5 (the first block) without removing extmarks.
+      -- This simulates visual select + delete. The extmark for orphan-1
+      -- will survive and move to the next remaining line (@b.lua#2).
+      vim.api.nvim_buf_set_lines(buf, 2, 5, false, {})
+
+      -- Buffer after deletion:
+      -- 1: # Marginalia Manager...
+      -- 2: ----...
+      -- 3: @b.lua#2  (orphan-1 extmark collapsed here + orphan-2 extmark)
+      -- 4: second
+
+      -- Trigger sync via :w
+      vim.cmd("write")
+
+      -- store.reorder should have been called with only orphan-2,
+      -- because orphan-1's extmark is on @b.lua#2 (not its original header)
+      assert.stub(store.reorder).was.called()
+      local last_call = store.reorder.calls[#store.reorder.calls]
+      local ordered = last_call.refs[1]
+      assert.are.same({ "orphan-2" }, ordered)
+
+      cleanup_manager(buf)
+    end)
+
+    it("syncs edited comments back to store", function()
+      local items = {
+        {
+          id = "cedit-1",
+          file = "a.lua",
+          line = 1,
+          end_line = 1,
+          comment = "original comment",
+        },
+      }
+      local buf = open_manager_with(items)
+
+      -- Buffer:
+      -- 1: # Marginalia Manager...
+      -- 2: ----...
+      -- 3: @a.lua#1
+      -- 4: original comment
+
+      -- Edit the comment line
+      vim.api.nvim_buf_set_lines(buf, 3, 4, false, { "edited comment" })
+
+      -- Trigger sync via :w
+      vim.cmd("write")
+
+      -- The item's comment should have been updated
+      assert.are.same("edited comment", items[1].comment)
+
+      cleanup_manager(buf)
+    end)
+
+    it("syncs multiline comment edits back to store", function()
+      local items = {
+        {
+          id = "cedit-ml",
+          file = "a.lua",
+          line = 1,
+          end_line = 1,
+          comment = "line one\nline two",
+        },
+      }
+      local buf = open_manager_with(items)
+
+      -- Replace "line two" with "modified line two" and add "line three"
+      vim.api.nvim_buf_set_lines(buf, 4, 5, false, { "modified line two", "line three" })
+
+      vim.cmd("write")
+
+      assert.are.same("line one\nmodified line two\nline three", items[1].comment)
+
+      cleanup_manager(buf)
+    end)
+
+    it("syncs correctly after title line is deleted", function()
+      local items = {
+        {
+          id = "title-del-1",
+          file = "a.lua",
+          line = 1,
+          end_line = 1,
+          comment = "first",
+        },
+        {
+          id = "title-del-2",
+          file = "b.lua",
+          line = 2,
+          end_line = 2,
+          comment = "second",
+        },
+      }
+      local buf = open_manager_with(items)
+
+      -- Delete the title line (line 1) and separator (line 2)
+      vim.api.nvim_buf_set_lines(buf, 0, 2, false, {})
+
+      -- Buffer after deletion:
+      -- 1: @a.lua#1
+      -- 2: first
+      -- 3: (blank)
+      -- 4: @b.lua#2
+      -- 5: second
+
+      -- Now delete the first block using dd on header
+      vim.api.nvim_win_set_cursor(0, { 1, 0 })
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("dd", true, false, true), "x", false)
+
+      -- Trigger sync via :w
+      vim.cmd("write")
+
+      -- Only title-del-2 should remain
+      assert.stub(store.reorder).was.called()
+      local last_call = store.reorder.calls[#store.reorder.calls]
+      local ordered = last_call.refs[1]
+      assert.are.same({ "title-del-2" }, ordered)
+
+      cleanup_manager(buf)
+    end)
+
+    it("preserves comments in code-fence blocks during sync", function()
+      display.setup({ include_code = true })
+      local items = {
+        {
+          id = "cfence-1",
+          file = "a.lua",
+          line = 1,
+          end_line = 1,
+          code_chunk = "x = 1",
+          comment = "original",
+        },
+      }
+      local buf = open_manager_with(items)
+
+      -- Buffer:
+      -- 1: # Marginalia Manager...
+      -- 2: ----...
+      -- 3: @a.lua#1
+      -- 4: ```lua
+      -- 5: x = 1
+      -- 6: ```
+      -- 7: original
+
+      -- Edit the comment (line 7)
+      vim.api.nvim_buf_set_lines(buf, 6, 7, false, { "updated" })
+
+      vim.cmd("write")
+
+      -- Comment should be updated, code fence content should not leak into comment
+      assert.are.same("updated", items[1].comment)
+
+      cleanup_manager(buf)
+    end)
+  end)
+
   describe("close_manager", function()
     it("closes manager buffer even when buffer has unsaved modifications", function()
       local buf = open_manager_with({

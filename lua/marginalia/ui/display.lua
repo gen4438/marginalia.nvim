@@ -75,27 +75,88 @@ local function format_line_range(item)
   return tostring(start_line)
 end
 
----Read extmarks to get the current ordered annotation IDs from the buffer
----@return string[]
-local function get_ordered_ids()
+---Parse comment text from a block range in the buffer (skipping code fences)
+---@param buf_lines string[] all buffer lines
+---@param start number 1-based header line
+---@param content_end number 1-based last content line
+---@return string comment text
+local function parse_comment_from_block(buf_lines, start, content_end)
+  local comment_lines = {}
+  local in_code_fence = false
+  for i = start + 1, content_end do
+    local l = buf_lines[i] or ""
+    if l:match("^```") then
+      in_code_fence = not in_code_fence
+    elseif not in_code_fence then
+      table.insert(comment_lines, l)
+    end
+  end
+  return table.concat(comment_lines, "\n")
+end
+
+---Sync buffer state (order, deletions, comment edits) back to store
+local function sync_manager()
   if not manage_buf or not vim.api.nvim_buf_is_valid(manage_buf) then
-    return {}
+    return
   end
 
+  local buf_lines = vim.api.nvim_buf_get_lines(manage_buf, 0, -1, false)
+  local total = #buf_lines
   local extmarks = vim.api.nvim_buf_get_extmarks(manage_buf, ns_id, 0, -1, {})
-  local ordered_ids = {}
+
+  -- Collect valid extmarks: the annotation's expected header must match the line content.
+  -- This excludes orphaned extmarks that collapsed onto another annotation's header.
+  local valid = {}
+  local seen_rows = {}
   for _, ext in ipairs(extmarks) do
     local ann_id = extmark_to_ann_id[ext[1]]
     if ann_id then
-      table.insert(ordered_ids, ann_id)
+      local row = ext[2] -- 0-indexed
+      local line = buf_lines[row + 1] or ""
+      -- Reconstruct expected header from annotation data
+      local item = store.get(ann_id)
+      if item then
+        local display_file = vim.fn.fnamemodify(item.file or "unknown", ":.")
+        local expected = string.format("@%s#%s", display_file, format_line_range(item))
+        if line == expected and not seen_rows[row] then
+          seen_rows[row] = true
+          table.insert(valid, { id = ann_id, start = row + 1 }) -- 1-based
+        end
+      end
     end
   end
-  return ordered_ids
-end
 
----Sync buffer state (order + deletions) back to store
-local function sync_manager()
-  local ordered_ids = get_ordered_ids()
+  -- Determine block boundaries and sync comments
+  for i, v in ipairs(valid) do
+    local block_start = v.start
+    local content_end = total
+    -- Next valid header marks the end of this block
+    if i < #valid then
+      local next_start = valid[i + 1].start
+      content_end = next_start - 1
+      -- Trim trailing blank separator
+      if content_end >= block_start + 1 and (buf_lines[content_end] or "") == "" then
+        content_end = content_end - 1
+      end
+    else
+      -- Last block: trim trailing blank at end of buffer
+      if total >= block_start + 1 and (buf_lines[total] or "") == "" then
+        content_end = total - 1
+      end
+    end
+
+    -- Update comment in store
+    local item = store.get(v.id)
+    if item then
+      item.comment = parse_comment_from_block(buf_lines, block_start, content_end)
+    end
+  end
+
+  -- Reorder and remove deleted annotations
+  local ordered_ids = {}
+  for _, v in ipairs(valid) do
+    table.insert(ordered_ids, v.id)
+  end
   store.reorder(ordered_ids)
   store.save()
 end
