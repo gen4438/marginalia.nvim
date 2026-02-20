@@ -1,4 +1,6 @@
 local M = {}
+M.version = "0.0.0"
+
 local store = require("marginalia.core.store")
 local capture = require("marginalia.core.capture")
 local display = require("marginalia.ui.display")
