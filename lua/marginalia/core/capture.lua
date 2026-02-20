@@ -43,8 +43,52 @@ local function annotate_range(start_line, end_line, runtime_opts)
     file = file:sub(#root + 2)
   end
 
+  -- Prepare initial content
+  local initial_lines = nil
+  if include_code then
+    local ft = vim.bo.filetype or ""
+    initial_lines = { "", "", "---", "```" .. ft }
+    for _, l in ipairs(lines) do
+      table.insert(initial_lines, l)
+    end
+    table.insert(initial_lines, "```")
+  end
+
   -- Open Input UI
   ui.open(function(input_lines)
+    local comment_lines = {}
+    local new_code_lines = {}
+    local parsing_code = false
+    local found_separator = false
+
+    if include_code then
+      for _, line in ipairs(input_lines) do
+        if not found_separator and line:match("^%-%-%-%s*$") then
+          found_separator = true
+        elseif found_separator then
+          if line:match("^```.*$") then
+            if not parsing_code then
+              parsing_code = true
+            else
+              parsing_code = false
+            end
+          elseif parsing_code then
+            table.insert(new_code_lines, line)
+          end
+        else
+          table.insert(comment_lines, line)
+        end
+      end
+      if found_separator then
+        if #new_code_lines > 0 then
+          code_chunk = table.concat(new_code_lines, "\n")
+        else
+          code_chunk = nil
+        end
+      end
+      input_lines = comment_lines
+    end
+
     if not input_lines or #input_lines == 0 then
       return
     end
@@ -84,7 +128,7 @@ local function annotate_range(start_line, end_line, runtime_opts)
     clipboard.copy(md)
 
     print("Marginalia: Annotation saved & copied to clipboard.")
-  end)
+  end, { initial_lines = initial_lines })
 end
 
 ---Process the current visual selection and prompt for annotation

@@ -2,8 +2,10 @@ local M = {}
 
 ---Open floating input window
 ---@param callback function(lines: table) callback with entered text lines
+---@param opts table|nil options for window (e.g. initial_content)
 ---@return table context {win_id, buf_id, submit, cancel}
-function M.open(callback)
+function M.open(callback, opts)
+  opts = opts or {}
   -- Create buffer
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_option(buf, "bufhidden", "wipe")
@@ -15,7 +17,7 @@ function M.open(callback)
   local row = math.floor((vim.o.lines - height) / 2)
   local col = math.floor((vim.o.columns - width) / 2)
 
-  local opts = {
+  local win_opts = {
     relative = "editor",
     width = width,
     height = height,
@@ -27,7 +29,13 @@ function M.open(callback)
     title_pos = "center",
   }
 
-  local win = vim.api.nvim_open_win(buf, true, opts)
+  local win = vim.api.nvim_open_win(buf, true, win_opts)
+
+  if opts.initial_lines then
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, opts.initial_lines)
+    -- Move cursor to top
+    vim.api.nvim_win_set_cursor(win, { 1, 0 })
+  end
 
   -- Actions
   local function submit()

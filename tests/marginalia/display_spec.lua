@@ -1105,6 +1105,57 @@ describe("display", function()
       cleanup_manager(buf)
     end)
 
+    it("syncs edited code chunk back to store", function()
+      display.setup({ include_code = true })
+      local items = {
+        {
+          id = "cedit-code",
+          file = "a.lua",
+          line = 1,
+          end_line = 1,
+          code_chunk = "old code",
+          comment = "original comment",
+        },
+      }
+      local buf = open_manager_with(items)
+
+      -- buffer has header, ```lua, old code, ```, original comment
+      -- Replace "old code" with "new code"
+      vim.api.nvim_buf_set_lines(buf, 4, 5, false, { "new code" })
+
+      vim.cmd("write")
+
+      assert.are.same("new code", items[1].code_chunk)
+      assert.are.same("original comment", items[1].comment)
+
+      cleanup_manager(buf)
+    end)
+
+    it("clears code chunk when code block deleted", function()
+      display.setup({ include_code = true })
+      local items = {
+        {
+          id = "cedit-clear-code",
+          file = "a.lua",
+          line = 1,
+          end_line = 1,
+          code_chunk = "old code",
+          comment = "original comment",
+        },
+      }
+      local buf = open_manager_with(items)
+
+      -- Delete code block lines (```lua, old code, ```)
+      vim.api.nvim_buf_set_lines(buf, 3, 6, false, {})
+
+      vim.cmd("write")
+
+      assert.is_nil(items[1].code_chunk)
+      assert.are.same("original comment", items[1].comment)
+
+      cleanup_manager(buf)
+    end)
+
     it("syncs correctly after title line is deleted", function()
       local items = {
         {
