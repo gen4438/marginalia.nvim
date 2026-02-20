@@ -17,7 +17,14 @@ end
 ---Prompt for annotation on the given line range and save
 ---@param start_line number
 ---@param end_line number
-local function annotate_range(start_line, end_line)
+---@param runtime_opts table|nil
+local function annotate_range(start_line, end_line, runtime_opts)
+  runtime_opts = runtime_opts or {}
+  local include_code = runtime_opts.include_code
+  if include_code == nil then
+    include_code = config.include_code
+  end
+
   -- Get content
   local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
   local code_chunk = table.concat(lines, "\n")
@@ -73,7 +80,7 @@ local function annotate_range(start_line, end_line)
     store.save()
 
     -- Generate Markdown and copy to clipboard
-    local md = generate.markdown(item, { include_code = config.include_code })
+    local md = generate.markdown(item, { include_code = include_code })
     clipboard.copy(md)
 
     print("Marginalia: Annotation saved & copied to clipboard.")
@@ -81,7 +88,8 @@ local function annotate_range(start_line, end_line)
 end
 
 ---Process the current visual selection and prompt for annotation
-function M.process_selection()
+---@param opts table|nil
+function M.process_selection(opts)
   -- Get visual selection range
   local start_pos = vim.fn.getpos("'<")
   local end_pos = vim.fn.getpos("'>")
@@ -99,13 +107,14 @@ function M.process_selection()
     start_line, end_line = end_line, start_line
   end
 
-  annotate_range(start_line, end_line)
+  annotate_range(start_line, end_line, opts)
 end
 
 ---Annotate the current cursor line
-function M.process_line()
+---@param opts table|nil
+function M.process_line(opts)
   local line = vim.fn.line(".")
-  annotate_range(line, line)
+  annotate_range(line, line, opts)
 end
 
 return M
